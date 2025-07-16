@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BCO Calculator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="">
+  <div class="theme-toggle">
+    <label for="themeToggle">Theme:</label>
+    <button id="themeToggle">🌙</button>
+  </div>
+  <div class="container">
+    <img src="team-logo.png" alt="TEAM Industrial Services" class="logo" />
+    <h1 class="title">BCO Calculator</h1>
+
+    <div class="form-group">
+      <label for="units">Units:</label>
+      <select id="units">
+        <option value="inches" selected>Inches</option>
+        <option value="cm">Centimeters</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="pipeMaterial">Pipe Material:</label>
+      <select id="pipeMaterial">
+        <option value="CarbonSteel" selected>Carbon Steel</option>
+        <option value="DuctileIron">Ductile Iron</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="pipeOD">Pipe O.D.:</label>
+      <select id="pipeOD"></select>
+    </div>
+
+    <div class="form-group">
+      <label for="schedule">Pipe Schedule:</label>
+      <select id="schedule">
+        <option value="STD">Standard (STD)</option>
+        <option value="40">Schedule 40</option>
+        <option value="XS">Extra Strong (XS)</option>
+        <option value="80">Schedule 80</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="pipeID">Pipe I.D. (auto-filled):</label>
+      <input type="number" id="pipeID" step="any" readonly />
+    </div>
+
+    <div class="form-group">
+      <label for="cutterOD">Cutter O.D.:</label>
+      <input type="number" id="cutterOD" step="any" />
+    </div>
+
+    <div class="form-group">
+      <button onclick="calculateBCO()">Calculate</button>
+    </div>
+    <p id="result">BCO will appear here</p>
+
+    <div class="history-toggle">
+      <button onclick="toggleHistory()">Show History</button>
+    </div>
+
+    <div class="history" id="historyBox" style="display: none;">
+      <h2>History</h2>
+      <ul id="historyList"></ul>
+      <button onclick="clearHistory()">Clear History</button>
+    </div>
+  </div>
+
+  
+<script>
+  const pipeData = {
+    CarbonSteel: {
+      "3.0": { STD: 3.068, "40": 3.068, XS: 2.9, "80": 2.9 },
+      "4.0": { STD: 4.026, "40": 4.026, XS: 3.826, "80": 3.826 },
+      "6.0": { STD: 6.065, "40": 6.065, XS: 5.761, "80": 5.761 },
+      "8.0": { STD: 7.981, "40": 7.981, XS: 7.625, "80": 7.625 },
+      "10.0": { STD: 10.02, "40": 10.02, XS: 9.564, "80": 9.564 },
+      "12.0": { STD: 11.938, "40": 11.938, XS: 11.314, "80": 11.314 },
+      "14.0": { STD: 13.25, "40": 13.25, XS: 12.5, "80": 12.5 },
+      "16.0": { STD: 15.25, "40": 15.25, XS: 14.688, "80": 14.688 },
+      "18.0": { STD: 17.25, "40": 17.25, XS: 16.624, "80": 16.624 },
+      "20.0": { STD: 19.25, "40": 19.25, XS: 18.624, "80": 18.624 },
+      "24.0": { STD: 23.25, "40": 23.25, XS: 22.5, "80": 22.5 },
+      "30.0": { STD: 29.25, "40": 29.25, XS: 28.5, "80": 28.5 },
+      "36.0": { STD: 35.25, "40": 35.25, XS: 34.5, "80": 34.5 },
+      "42.0": { STD: 41.25, "40": 41.25, XS: 40.5, "80": 40.5 },
+      "48.0": { STD: 47.25, "40": 47.25, XS: 46.5, "80": 46.5 }
+    },
+    DuctileIron: {
+      "3.0": { STD: 3.26 },
+      "4.0": { STD: 4.04 },
+      "6.0": { STD: 6.1 },
+      "8.0": { STD: 8.28 },
+      "10.0": { STD: 10.32 },
+      "12.0": { STD: 12.38 },
+      "14.0": { STD: 14.4 },
+      "16.0": { STD: 16.5 },
+      "18.0": { STD: 18.6 },
+      "20.0": { STD: 20.7 },
+      "24.0": { STD: 24.9 },
+      "30.0": { STD: 31.0 },
+      "36.0": { STD: 37.0 },
+      "42.0": { STD: 43.2 },
+      "48.0": { STD: 49.3 }
+    }
+  };
+
+  function populatePipeOD() {
+    const material = document.getElementById("pipeMaterial").value;
+    const odSelect = document.getElementById("pipeOD");
+    odSelect.innerHTML = "";
+    for (const size in pipeData[material]) {
+      const label = `${size}\" (${pipeData[material][size].STD} OD)`;
+      const option = document.createElement("option");
+      option.value = size;
+      option.textContent = label;
+      odSelect.appendChild(option);
+    }
+    updatePipeID();
+  }
+
+  function updatePipeID() {
+    const material = document.getElementById("pipeMaterial").value;
+    const od = document.getElementById("pipeOD").value;
+    const schedule = document.getElementById("schedule").value;
+    const pipe = pipeData[material]?.[od];
+    const idInput = document.getElementById("pipeID");
+
+    if (!pipe) {
+      idInput.value = "";
+      return;
+    }
+
+    if (pipe[schedule] !== undefined) {
+      idInput.value = pipe[schedule];
+    } else if (pipe.STD !== undefined) {
+      idInput.value = pipe.STD;
+    } else {
+      idInput.value = "";
+    }
+  }
+
+  window.onload = function () {
+    document.getElementById("themeToggle").addEventListener("click", () => {
+      document.body.classList.toggle("dark");
+    });
+
+    document.getElementById("pipeMaterial").addEventListener("change", populatePipeOD);
+    document.getElementById("pipeOD").addEventListener("change", updatePipeID);
+    document.getElementById("schedule").addEventListener("change", updatePipeID);
+    populatePipeOD();
+  };
+</script>
+
+</body>
+</html>
