@@ -84,5 +84,34 @@ if ("serviceWorker" in navigator) {
   });
 }
 </script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js').then(registration => {
+    registration.onupdatefound = () => {
+      const installingWorker = registration.installing;
+      installingWorker.onstatechange = () => {
+        if (installingWorker.state === 'installed') {
+          if (navigator.serviceWorker.controller) {
+            const updateBanner = document.createElement('div');
+            updateBanner.style.position = 'fixed';
+            updateBanner.style.bottom = '20px';
+            updateBanner.style.left = '50%';
+            updateBanner.style.transform = 'translateX(-50%)';
+            updateBanner.style.background = '#00468b';
+            updateBanner.style.color = 'white';
+            updateBanner.style.padding = '10px 20px';
+            updateBanner.style.borderRadius = '8px';
+            updateBanner.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+            updateBanner.style.zIndex = '1000';
+            updateBanner.innerHTML = 'Update available! <button style="margin-left: 10px; background: white; color: #00468b; border: none; border-radius: 5px; padding: 5px;" onclick="location.reload()">Reload</button>';
+            document.body.appendChild(updateBanner);
+          }
+        }
+      };
+    };
+  });
+}
+</script>
 </body>
 </html>
