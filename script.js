@@ -63,6 +63,7 @@ function populatePipeOD() {
   updatePipeID();
 }
 
+
 function updatePipeID() {
   const material = document.getElementById("pipeMaterial").value;
   const od = document.getElementById("pipeOD").value;
@@ -71,28 +72,49 @@ function updatePipeID() {
   const idInput = document.getElementById("pipeID");
 
   if (!pipe) {
-    idInput.value = "";
+    if (!idManuallyEdited) idInput.value = "";
     return;
   }
 
-  if (pipe[schedule] !== undefined) {
-    idInput.value = pipe[schedule];
-  } else if (pipe.STD !== undefined) {
-    idInput.value = pipe.STD;
-  } else {
-    idInput.value = "";
+  if (!idManuallyEdited) {
+    if (pipe[schedule] !== undefined) {
+      idInput.value = pipe[schedule];
+    } else if (pipe.STD !== undefined) {
+      idInput.value = pipe.STD;
+    } else {
+      idInput.value = "";
+    }
   }
 }
 
+
+
 function calculateBCO() {
+  console.log("calculateBCO called");
+
   const pipeOD = parseFloat(document.getElementById("pipeOD").value);
   const pipeID = parseFloat(document.getElementById("pipeID").value);
   const cutterOD = parseFloat(document.getElementById("cutterOD").value);
+
   if (isNaN(pipeOD) || isNaN(pipeID) || isNaN(cutterOD)) return;
 
   const result = (pipeOD / 2) - Math.sqrt(Math.pow(pipeID / 2, 2) - Math.pow(cutterOD / 2, 2));
-  document.getElementById("result").textContent = `BCO: ${result.toFixed(4)}`;
+  const bcoText = `BCO: ${result.toFixed(4)}`;
+
+  // Show result
+  document.getElementById("result").textContent = bcoText;
+
+  // Append to history UI
+  const li = document.createElement("li");
+  li.textContent = bcoText;
+  document.getElementById("historyList").appendChild(li);
+
+  // Save to localStorage
+  let history = JSON.parse(localStorage.getItem("bcoHistory")) || [];
+  history.push(bcoText);
+  localStorage.setItem("bcoHistory", JSON.stringify(history));
 }
+
 
 function toggleHistory() {
   const box = document.getElementById("historyBox");
@@ -107,12 +129,40 @@ document.getElementById("themeToggle").addEventListener("click", () => {
   document.body.classList.toggle("dark-mode");
 });
 
+
+let idManuallyEdited = false;
+
+document.getElementById("pipeID").addEventListener("input", () => {
+  idManuallyEdited = true;
+});
+
+
 window.onload = function () {
-  document.getElementById("pipeMaterial").addEventListener("change", populatePipeOD);
-  document.getElementById("pipeOD").addEventListener("change", updatePipeID);
-  document.getElementById("schedule").addEventListener("change", updatePipeID);
+  document.getElementById("pipeMaterial").addEventListener("change", () => {
+    idManuallyEdited = false;
+    populatePipeOD();
+  });
+  document.getElementById("pipeOD").addEventListener("change", () => {
+    idManuallyEdited = false;
+    updatePipeID();
+  });
+  document.getElementById("schedule").addEventListener("change", () => {
+    idManuallyEdited = false;
+    updatePipeID();
+  });
+
+  document.getElementById("pipeID").addEventListener("input", () => {
+    idManuallyEdited = true;
+  });
+
+  document.getElementById("themeToggle").addEventListener("click", () => {
+    document.body.classList.toggle("dark-mode");
+  });
+
   populatePipeOD();
+  loadHistory();
 };
+
 
 const toggleBtn = document.getElementById("themeToggle");
 
@@ -128,3 +178,23 @@ toggleBtn.addEventListener("click", () => {
   toggleBtn.textContent = isDark ? "☀️" : "🌙";
   localStorage.setItem("theme", isDark ? "dark" : "light");
 });
+
+
+function loadHistory() {
+  console.log("loadHistory called");
+  const history = JSON.parse(localStorage.getItem("bcoHistory")) || [];
+  const list = document.getElementById("historyList");
+  list.innerHTML = "";
+  history.forEach(entry => {
+    const li = document.createElement("li");
+    li.textContent = entry;
+    list.appendChild(li);
+  });
+}
+
+function clearHistory() {
+  if (confirm('Are you sure you want to clear all BCO history?')) {
+    document.getElementById("historyList").innerHTML = "";
+    localStorage.removeItem("bcoHistory");
+  }
+}
