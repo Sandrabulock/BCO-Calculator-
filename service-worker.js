@@ -1,6 +1,6 @@
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open("bco-cache").then((cache) =>
+    caches.open("bco-cache-v2").then((cache) =>
       cache.addAll([
         "./",
         "index.html",
@@ -14,8 +14,21 @@ self.addEventListener("install", (e) => {
   self.skipWaiting();
 });
 
+
 self.addEventListener("activate", (e) => {
-  e.waitUntil(self.clients.claim());
+  e.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys.map((key) => {
+          if (key !== "bco-cache-v2") {
+            return caches.delete(key);
+          }
+        })
+      )
+    ).then(() => self.clients.claim())
+  );
+});
+
 });
 
 self.addEventListener("fetch", (e) => {
